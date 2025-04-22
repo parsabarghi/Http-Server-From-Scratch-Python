@@ -2,7 +2,7 @@ import socket  # noqa: F401
 
 responses = {
  "ok" : b"HTTP/1.1 200 OK\r\n\r\n",
-
+ "not found": b"HTTP/1.1 404 Not Found\r\n\r\n"
 }
 
 def main():
@@ -12,8 +12,13 @@ def main():
     connection, address = server_socket.accept() # wait for client
 
     with connection:
-        connection.sendall(responses["ok"])
-
+        print(f"connect with {address}")
+        while True:
+            data = connection.recv(1024)
+            if data == b"/":
+                connection.sendall(responses["ok"])
+            else: 
+                connection.sendall(responses["not found"])  
 
 if __name__ == "__main__":
     main()
