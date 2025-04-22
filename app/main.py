@@ -9,13 +9,13 @@ def main():
     
     server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
     print("server is running...")
-    connection, address = server_socket.accept() # wait for client
-
-    with connection:
+    while True:
+        connection, address = server_socket.accept() # wait for client
         print(f"connect with {address}")
-        while True:
+
+        with connection: 
             data = connection.recv(1024).split(b"\r\n")[0]
-            if data == b"/":
+            if data == b"GET / HTTP/1.1":
                 connection.sendall(responses["ok"])
             else: 
                 connection.sendall(responses["not found"])  
