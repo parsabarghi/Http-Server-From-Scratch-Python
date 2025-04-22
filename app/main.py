@@ -14,7 +14,7 @@ def main():
     with connection:
         print(f"connect with {address}")
         while True:
-            data = connection.recv(1024)
+            data = connection.recv(1024).split(b"\r\n")[0]
             if data == b"/":
                 connection.sendall(responses["ok"])
             else: 
