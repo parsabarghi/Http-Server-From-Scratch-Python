@@ -55,6 +55,7 @@ class HttpRequest:
     def __repr__(self): 
         return f"{__class__.__name__}: method: {self.method!r}, path: {self.path!r}, version: {self.version!r}, header:{self.headers!r}, body:{self.body!r}"
     
+
 class HttpResponse:
     __slots__ = ["status", "header","body"]
 
@@ -88,6 +89,18 @@ class HttpResponse:
                 b"Content-Length: " + str(len(body)).encode() + b"\r\n"
             )
             status = responses[200]
+
+        elif http_req.path == "/user-agent" and http_req.method == "GET":
+            body = http_req.headers["User-Agent"].encode("utf-8")
+            header = header = (
+                b"Content-Type: text/plain\r\n"
+                b"Content-Length: " + str(len(body)).encode() + b"\r\n"
+            )
+            status = responses[200]
+            print(body)
+            
+
+        
 
         # handle not found
         else:
