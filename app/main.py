@@ -1,9 +1,9 @@
 import socket  # noqa: F401
 
 responses = {
- "Resp-Ok" : b"HTTP/1.1 200 OK\r\n\r\n",
- "Resp-Notfound": b"HTTP/1.1 404 Not Found\r\n\r\n",
- "Resp-Badreq": b"HTTP/1.1 400 Bad Request\r\n"
+ 200: b"HTTP/1.1 200 OK\r\n",
+ 404: b"HTTP/1.1 404 Not Found\r\n",
+ 400: b"HTTP/1.1 400 Bad Request\r\n"
 }
 
 # endpoints = {
@@ -11,7 +11,7 @@ responses = {
 #     "echo": "/echo/"
 # }
 
-class HTTPRequest:
+class HttpRequest:
     __slots__ = ["method","path", "version", "headers", "body"]
 
     def __init__(self, method: str, path: str, version: str, headers: str, body: str):
@@ -22,7 +22,7 @@ class HTTPRequest:
         self.body = body
 
     @classmethod
-    def parse_reqline(cls, reqline: bytes):
+    def parse_reqline(cls, reqline: bytes)-> "HttpRequest":
         """handle parse the request line of HTTP"""
 
         try:
@@ -50,11 +50,62 @@ class HTTPRequest:
             return cls(method, path, version, headers, body)
 
         except Exception as e: 
-            raise ValueError(f"Failed to parse request(HTTPRequest): {str(e)}")
+            raise ValueError(f"Failed to parse request(HttpRequest): {str(e)}")
         
     def __repr__(self): 
-        return f"{__class__.__name__}: method: {self.method}, path: {self.path}, version: {self.version}, header:{self.headers}, body:{self.body}"
+        return f"{__class__.__name__}: method: {self.method!r}, path: {self.path!r}, version: {self.version!r}, header:{self.headers!r}, body:{self.body!r}"
     
+class HttpResponse:
+    __slots__ = ["status", "header","body"]
+
+    def __init__(self, status: bytes, header: bytes, body:bytes):
+        self.status = status
+        self.header = header
+        self.body = body
+
+    def to_bytes(self) -> bytes: 
+        """convert response to bytes for transmission"""
+        return self.status + self.header + b"\r\n" + self.body
+   
+    @classmethod
+    def build_response(cls, http_req: HttpRequest) -> "HttpResponse":
+        """building http response"""
+
+        # handle "/"
+        if http_req.path == "/" and http_req.method == "GET":
+            body = b"Hello, World"
+            header = (
+                b"Content-Type: text/plain\r\n"
+                b"Content-Length: " + str(len(body)).encode() + b"\r\n"
+            )
+            status = responses[200]
+
+        # handle "/echo/*"
+        elif http_req.path.startswith("/echo") and http_req.method == "GET":
+            body = http_req.path[len("/echo/"):].encode("utf-8")
+            header = (
+                b"Content-Type: text/plain\r\n"
+                b"Content-Length: " + str(len(body)).encode() + b"\r\n"
+            )
+            status = responses[200]
+
+        # handle not found
+        else:
+            body = b""
+            header = b""
+            status = responses[404]
+
+        
+        return cls(status, header, body)
+    
+
+    def __repr__(self):
+        return f"{__class__.__name__}: status: {self.status!r}, header: {self.header!r}, body: {self.body!r} "
+        
+
+
+
+
 def main():
     
     server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
@@ -66,20 +117,18 @@ def main():
         with connection: 
             request_line = connection.recv(1024)
             try: 
-                request = HTTPRequest.parse_reqline(request_line)
+                request = HttpRequest.parse_reqline(request_line)
                 print(request)
-                if request.path == "/":
-                    response = responses["Resp-Ok"]
-                elif request.path.startswith("/echo"):
-                    response = responses["Resp-Ok"]
-                else:
-                    response = responses["Resp-Notfound"]
+                response = HttpResponse.build_response(request)
+                print(response)
+                connection.sendall(response.to_bytes())
+                
                       
             except Exception as e: 
                 print(f"exceptions error: {str(e)}")
-                response = responses["Resp-Badreq"]
+                connection.sendall(responses[400])
+                
             
-            connection.sendall(response)
                 
 
             # if endpoints["home"] in request_line or endpoints["echo"] in request_line:
