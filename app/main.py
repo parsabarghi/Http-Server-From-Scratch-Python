@@ -1,5 +1,6 @@
 import socket  # noqa: F401
 
+
 responses = {
  200: b"HTTP/1.1 200 OK\r\n",
  404: b"HTTP/1.1 404 Not Found\r\n",
